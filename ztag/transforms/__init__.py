@@ -7,6 +7,7 @@ from http import HTTPTransform
 from http import HTTPWWWTransform
 
 from https import HTTPSTransform
+from https import HTTPSGetTransform
 from https import HTTPSWWWTransform
 from https import HeartbleedTransform
 from https import RSAExportTransform
@@ -37,5 +38,7 @@ from sslv2 import SSLv2Transform
 from smb import SMBTransform
 from oracle import OracleTransform
 from postgres import PostgresTransform
+from mongodb import MongoDBTransform
 from mssql import MSSQLTransform
 from mysql import MySQLTransform
+from ipp import IPPTransform

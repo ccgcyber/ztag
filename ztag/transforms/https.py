@@ -2,6 +2,17 @@ from ztag.transform import ZGrabTransform, ZMapTransformOutput
 from ztag import protocols, errors
 from ztag.transform import Transformable
 from ztag.errors import IgnoreObject
+from http import HTTPTransform
+
+
+class HTTPSGetTransform(HTTPTransform):
+    name = "https/get"
+    port = None
+    protocol = protocols.HTTPS
+    subprotocol = protocols.HTTPS.GET
+
+    def __init__(self, *args, **kwargs):
+        super(HTTPSGetTransform, self).__init__(*args, **kwargs)
 
 
 class HTTPSTransform(ZGrabTransform):
@@ -15,6 +26,8 @@ class HTTPSTransform(ZGrabTransform):
         super(HTTPSTransform, self).__init__(*args, **kwargs)
 
     def _transform_object(self, obj):
+        if 'tls' not in obj['data']:
+            raise errors.IgnoreObject("Not a TLS response")
         tls = obj['data']['tls']
         out, certificates = HTTPSTransform.make_tls_obj(tls)
         zout = ZMapTransformOutput()

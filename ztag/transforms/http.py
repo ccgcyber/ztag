@@ -6,6 +6,17 @@ import re
 # That's right, I'm parsing HTML with regex
 title_regex = re.compile(r'<title>([\s\S]*?)<\/title>', re.IGNORECASE | re.UNICODE)
 
+
+# Helper function to return a list containing all of the certificates in its arguments with no
+# duplicates (using the "raw" field for comparison)
+def certs_union(*args):
+    temp = {}
+    for certs in args:
+        for cert in certs:
+            temp[cert["raw"]] = cert
+    return [cert for cert in temp.values()]
+
+
 class HTTPTransform(ZGrabTransform):
 
     name = "http/generic"
@@ -21,10 +32,10 @@ class HTTPTransform(ZGrabTransform):
         http_response = http['data']['http']['response']
         zout = ZMapTransformOutput()
         out = dict()
+        zout.transformed = out
         error_component = http['error_component'].resolve()
         if error_component is not None and error_component == 'connect':
             raise errors.IgnoreObject("connection error")
-
 
         if http_response is not None:
             status_line = http_response['status_line'].resolve()
@@ -45,6 +56,7 @@ class HTTPTransform(ZGrabTransform):
                         title = title[0:1024]
                     out['title'] = title.strip()
             if headers:
+                # FIXME: This modifies the input?
                 if "set_cookie" in headers:
                     del headers["set_cookie"]
                 if "date" in headers:
@@ -66,7 +78,6 @@ class HTTPTransform(ZGrabTransform):
         if len(out) == 0:
             raise errors.IgnoreObject("Empty output dict")
 
-        zout.transformed = out
         return zout
 
 

@@ -63,7 +63,9 @@ class Transform(object):
         try:
             return self._transform_object(obj)
         except (KeyError, TypeError, IndexError) as e:
-            raise IgnoreObject(original_exception=e)
+            import traceback
+            exc_info = traceback.format_exc()
+            raise IgnoreObject(e, exc_info)
 
     def _transform_object(self, obj):
         raise NotImplementedError
@@ -122,8 +124,11 @@ class ZMapTransform(Transform):
     incoming = None
     decoder = None
 
-    _hostname_regex = re.compile(r"researchscan[0-9]+\.eecs\.umich\.edu")
-    _ip_regex = re.compile(r"141\.212\.12[1-2]\.[0-9]+")
+    _hostname_regex = re.compile(r"researchscan[0-9]+\.eecs\.umich\.edu" +
+                                 r"|worker\-[0-9]+\.sfj\.corp\.censys\.io")
+
+    _ip_regex = re.compile(r"141\.212\.12[1-2]\.[0-9]{1,3}" +
+                           r"|198\.108\.66\.[0-9]{1,3}")
 
     def __init__(self, port=None, protocol=None, subprotocol=None,
                  scan_id=None, *args, **kwargs):
@@ -369,9 +374,15 @@ class ZGrab2Transform(ZMapTransform):
                                      "handshake_log")
             if tls_record is not None:
                 from ztag.transforms import HTTPSTransform
-                tls_out, tls_certs = HTTPSTransform.make_tls_obj(tls_record)
-                out.transformed["tls"] = tls_out
-                out.certificates = out.certificates + tls_certs
+                try:
+                    tls_out, tls_certs = HTTPSTransform.make_tls_obj(tls_record)
+                    out.transformed["tls"] = tls_out
+                    out.certificates = out.certificates + tls_certs
+                except IgnoreObject:
+                    # Just because the TLS field fails doesn't mean we want to throw away the rest
+                    # of the object.
+                    # TODO: It may still be useful to log these, though.
+                    pass
 
         return out
 
